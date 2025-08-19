@@ -11,7 +11,12 @@ import json
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-this-secret')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///isi_takip.db')
+
+# Render/Railway gibi ortamlarda DATABASE_URL 'postgres://' ile gelebilir; SQLAlchemy için 'postgresql://'
+raw_db_url = os.getenv('DATABASE_URL', 'sqlite:///isi_takip.db')
+if raw_db_url.startswith('postgres://'):
+    raw_db_url = raw_db_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -107,6 +112,11 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return render_template('index.html')
+
+# Basit healthcheck endpoint (Render sağlık kontrolleri için)
+@app.route('/healthz')
+def healthz():
+    return jsonify({"status": "ok"})
 
 # Giriş sayfası
 @app.route('/login', methods=['GET', 'POST'])
