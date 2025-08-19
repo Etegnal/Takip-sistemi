@@ -78,5 +78,23 @@ Sistem SQLite veritabanı kullanır. Veritabanı dosyası (`isi_takip.db`) otoma
 - Admin paneline sadece admin kullanıcıları erişebilir
 
 ## Lisans
+## GitHub Pages (Statik Önizleme)
+
+Bu depo, dinamik Flask uygulamasına ek olarak GitHub Pages ile açılabilecek statik bir önizleme içerir.
+
+- Statik dosyalar `docs/` klasöründedir.
+- GitHub Pages ayarlarında Source olarak "Deploy from a branch" → Branch: `main` ve Folder: `/docs` seçin.
+- Canlı sayfada çalışacak dosyalar: `docs/index.html` ve `docs/dashboard.html`.
+  - Bu sayfalar örnek verilerle (backend olmadan) çalışır.
+  - Gerçek zamanlı, giriş ve veritabanı özellikleri için uygulamayı bir PaaS üzerinde (Render/Railway/Heroku) çalıştırın.
+
+### VSCode Go Live
+
+VSCode Live Server eklentisiyle sadece statik önizlemeyi açmak için:
+
+1. `docs/index.html` dosyasını açın.
+2. Sağ alttaki "Go Live" butonuna basın.
+3. Statik demo anında görüntülenir. Dinamik backend özellikleri statikte çalışmaz.
+
 
 Bu proje MIT lisansı altında lisanslanmıştır.
