@@ -1,0 +1,443 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Isı Takip Sistemi{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- İstatistik Kartları -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stats-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title text-white-50">Toplam Veri</h6>
+                            <h3 class="mb-0 text-white">{{ toplam_veri }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-database fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stats-card success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title text-white-50">Ortalama Sıcaklık</h6>
+                            <h3 class="mb-0 text-white">{{ ortalama_sicaklik }}°C</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-thermometer-half fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stats-card warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title text-white-50">Maksimum Sıcaklık</h6>
+                            <h3 class="mb-0 text-white">{{ max_sicaklik }}°C</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-thermometer-full fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stats-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title text-white-50">Minimum Sıcaklık</h6>
+                            <h3 class="mb-0 text-white">{{ min_sicaklik }}°C</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-thermometer-empty fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Grafik ve Tablo -->
+    <div class="row">
+        <!-- Grafik -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Sıcaklık Grafiği (Son 24 Saat)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="temperatureChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Hızlı İşlemler -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Hızlı İşlemler</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="refreshData()">
+                            <i class="fas fa-sync-alt me-2"></i>Verileri Yenile
+                        </button>
+                        <button class="btn btn-outline-success" onclick="exportData()">
+                            <i class="fas fa-download me-2"></i>Veri İndir
+                        </button>
+                        {% if current_user.role == 'admin' %}
+                        <a href="{{ url_for('admin_panel') }}" class="btn btn-outline-warning">
+                            <i class="fas fa-cog me-2"></i>Admin Panel
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Veri Tablosu -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Son Veriler</h5>
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Ara..." style="width: 200px;">
+                        <select class="form-select form-select-sm" id="locationFilter" style="width: 150px;">
+                            <option value="">Tüm Lokasyonlar</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="dataTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Sensor ID</th>
+                                    <th>
+                                        Sıcaklık
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" id="sortAsc" title="Küçükten büyüğe sırala">
+                                            <i class="fas fa-sort-amount-up-alt"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" id="sortDesc" title="Büyükten küçüğe sırala">
+                                            <i class="fas fa-sort-amount-down"></i>
+                                        </button>
+                                    </th>
+                                    <th>Nem</th>
+                                    <th>Lokasyon</th>
+                                    <th>Tarih/Saat</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                {% for veri in veriler %}
+                                <tr>
+                                    <td>{{ veri.id }}</td>
+                                    <td>{{ veri.sensor_id }}</td>
+                                    <td>
+                                        <span class="{% if veri.sicaklik > 30 %}temperature-high{% elif veri.sicaklik < 15 %}temperature-low{% else %}temperature-normal{% endif %}">
+                                            {{ "%.1f"|format(veri.sicaklik) }}°C
+                                        </span>
+                                    </td>
+                                    <td>{{ "%.1f"|format(veri.nem) }}%</td>
+                                    <td>{{ veri.lokasyon }}</td>
+                                    <td>{{ veri.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Sayfalama -->
+                    <nav aria-label="Veri sayfalama">
+                        <ul class="pagination justify-content-center" id="pagination">
+                            <!-- Sayfalama JavaScript ile doldurulacak -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let currentPage = 1;
+let totalPages = 1;
+
+// Grafik oluşturma
+const ctx = document.getElementById('temperatureChart').getContext('2d');
+const temperatureChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            label: 'Sıcaklık (°C)',
+            data: [],
+            borderColor: '#3498db',
+            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+            tension: 0.4,
+            fill: true
+        }, {
+            label: 'Nem (%)',
+            data: [],
+            borderColor: '#e74c3c',
+            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+            tension: 0.4,
+            fill: true,
+            yAxisID: 'y1'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: false,
+                title: {
+                    display: true,
+                    text: 'Sıcaklık (°C)'
+                }
+            },
+            y1: {
+                position: 'right',
+                beginAtZero: false,
+                max: 100,
+                title: {
+                    display: true,
+                    text: 'Nem (%)'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                position: 'top',
+            }
+        }
+    }
+});
+
+// Veri yükleme fonksiyonu
+function loadData(page = 1) {
+    fetch(`/api/data?page=${page}&per_page=20`)
+        .then(response => response.json())
+        .then(data => {
+            updateTable(data.data);
+            updatePagination(data.current_page, data.pages, data.total);
+            updateChart(data.data);
+            updateLocationFilter(data.data);
+        })
+        .catch(error => console.error('Veri yükleme hatası:', error));
+}
+
+// Tablo güncelleme
+function updateTable(data) {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    
+    data.forEach(veri => {
+        const row = document.createElement('tr');
+        const tempClass = veri.sicaklik > 30 ? 'temperature-high' : 
+                         veri.sicaklik < 15 ? 'temperature-low' : 'temperature-normal';
+        
+        row.innerHTML = `
+            <td>${veri.id}</td>
+            <td>${veri.sensor_id}</td>
+            <td data-value="${veri.sicaklik}"><span class="${tempClass}">${veri.sicaklik.toFixed(1)}°C</span></td>
+            <td>${veri.nem.toFixed(1)}%</td>
+            <td>${veri.lokasyon}</td>
+            <td>${veri.timestamp}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Sayfalama güncelleme
+function updatePagination(currentPage, totalPages, total) {
+    const pagination = document.getElementById('pagination');
+    pagination.innerHTML = '';
+    
+    // Önceki sayfa
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="loadData(${currentPage - 1})">Önceki</a>`;
+    pagination.appendChild(prevLi);
+    
+    // Sayfa numaraları
+    for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="loadData(${i})">${i}</a>`;
+        pagination.appendChild(li);
+    }
+    
+    // Sonraki sayfa
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadData(${currentPage + 1})">Sonraki</a>`;
+    pagination.appendChild(nextLi);
+}
+
+// Grafik güncelleme
+function updateChart(data) {
+    const labels = data.map(veri => veri.timestamp.split(' ')[1]); // UTC+3 saat
+    const temperatures = data.map(veri => veri.sicaklik);
+    const humidity = data.map(veri => veri.nem);
+    
+    temperatureChart.data.labels = labels;
+    temperatureChart.data.datasets[0].data = temperatures;
+    temperatureChart.data.datasets[1].data = humidity;
+    temperatureChart.update();
+}
+
+// Lokasyon filtresi güncelleme
+function updateLocationFilter(data) {
+    const locations = [...new Set(data.map(veri => veri.lokasyon))];
+    const select = document.getElementById('locationFilter');
+    
+    // Mevcut seçimi koru
+    const currentValue = select.value;
+    
+    // Lokasyonları temizle ve yeniden ekle
+    select.innerHTML = '<option value="">Tüm Lokasyonlar</option>';
+    locations.forEach(location => {
+        const option = document.createElement('option');
+        option.value = location;
+        option.textContent = location;
+        if (location === currentValue) option.selected = true;
+        select.appendChild(option);
+    });
+}
+
+// Arama fonksiyonu
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('#tableBody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+});
+
+// Lokasyon filtresi
+document.getElementById('locationFilter').addEventListener('change', function(e) {
+    const filterValue = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('#tableBody tr');
+    
+    rows.forEach(row => {
+        const location = row.cells[4].textContent.toLowerCase();
+        row.style.display = !filterValue || location.includes(filterValue) ? '' : 'none';
+    });
+});
+
+// Sıralama
+function sortTableByTemperature(ascending = true) {
+    const tbody = document.getElementById('tableBody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    rows.sort((a, b) => {
+        const ta = parseFloat(a.children[2].getAttribute('data-value'));
+        const tb = parseFloat(b.children[2].getAttribute('data-value'));
+        return ascending ? ta - tb : tb - ta;
+    });
+    tbody.innerHTML = '';
+    rows.forEach(r => tbody.appendChild(r));
+}
+
+document.getElementById('sortAsc').addEventListener('click', function() {
+    sortTableByTemperature(true);
+});
+
+document.getElementById('sortDesc').addEventListener('click', function() {
+    sortTableByTemperature(false);
+});
+
+// Veri yenileme
+function refreshData() {
+    loadData(currentPage);
+    // 4 lokasyon için yeni veri oluştur
+    generateRandomBatchOnce();
+}
+
+// Veri indirme
+function exportData() {
+    fetch('/api/data?per_page=1000')
+        .then(response => response.json())
+        .then(data => {
+            const csv = convertToCSV(data.data);
+            downloadCSV(csv, 'isi_verileri.csv');
+        });
+}
+
+function convertToCSV(data) {
+    const headers = ['ID', 'Sensor ID', 'Sıcaklık', 'Nem', 'Lokasyon', 'Tarih/Saat'];
+    const csvContent = [
+        headers.join(','),
+        ...data.map(veri => [
+            veri.id,
+            veri.sensor_id,
+            veri.sicaklik,
+            veri.nem,
+            veri.lokasyon,
+            veri.timestamp
+        ].join(','))
+    ].join('\n');
+    
+    return csvContent;
+}
+
+function downloadCSV(csv, filename) {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+}
+
+// Sayfa yüklendiğinde veri yükle
+document.addEventListener('DOMContentLoaded', function() {
+    loadData();
+    // Otomatik yenileme kaldırıldı; sadece butona basınca yenilenecek
+});
+
+// Dashboard'tan tek seferlik batch üret
+function rand(min, max) { return Math.random() * (max - min) + min; }
+function generateRandomBatchOnce() {
+    const batch = [
+        { sensor_id: 'SENSOR001', lokasyon: 'Ofis A' },
+        { sensor_id: 'SENSOR002', lokasyon: 'Ofis B' },
+        { sensor_id: 'SENSOR003', lokasyon: 'Depo' },
+        { sensor_id: 'SENSOR004', lokasyon: 'Laboratuvar' }
+    ];
+    const reqs = batch.map(item => {
+        const base = rand(26, 31);
+        const noise = rand(-1.0, 1.0);
+        let sicaklik = Number((base + noise).toFixed(1));
+        if (Math.random() < 0.2) sicaklik = Number(rand(30.1, 33.0).toFixed(1));
+        const nem = Number(rand(45, 70).toFixed(1));
+        return fetch('/api/add_data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sensor_id: item.sensor_id, lokasyon: item.lokasyon, sicaklik, nem })
+        });
+    });
+    Promise.allSettled(reqs).then(() => { loadData(currentPage); });
+}
+</script>
+{% endblock %}
+

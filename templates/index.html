@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Ana Sayfa - Isı Takip Sistemi{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <div class="card">
+                <div class="card-body p-5">
+                    <div class="mb-4">
+                        <i class="fas fa-thermometer-half fa-4x text-primary mb-3"></i>
+                        <h1 class="display-4 fw-bold text-primary">Isı Takip Sistemi</h1>
+                        <p class="lead text-muted">Gerçek zamanlı sıcaklık ve nem takibi için profesyonel çözüm</p>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg px-4 me-md-2">
+                            <i class="fas fa-sign-in-alt me-2"></i>Giriş Yap
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
