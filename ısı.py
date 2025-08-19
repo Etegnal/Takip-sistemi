@@ -10,8 +10,8 @@ import os
 import json
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///isi_takip.db'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-this-secret')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///isi_takip.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -336,7 +336,7 @@ def get_data():
         'current_page': page
     })
 
-if __name__ == '__main__':
+def init_db_and_seed():
     with app.app_context():
         db.create_all()
         # Basit şema yükseltmesi: yeni sütunları yoksa ekle
@@ -363,7 +363,7 @@ if __name__ == '__main__':
                 db.session.commit()
         except Exception as e:
             print(f"Şema kontrolü sırasında hata: {e}")
-        
+
         # İlk admin kullanıcısını oluştur
         if not User.query.filter_by(username='admin').first():
             admin = User(
@@ -375,7 +375,7 @@ if __name__ == '__main__':
             db.session.add(admin)
             db.session.commit()
             print("Admin kullanıcısı oluşturuldu: admin/admin123")
-        
+
         # Test user kullanıcısını oluştur
         if not User.query.filter_by(username='user').first():
             user = User(
@@ -387,5 +387,11 @@ if __name__ == '__main__':
             db.session.add(user)
             db.session.commit()
             print("User kullanıcısı oluşturuldu: user/user123")
-    
-    app.run(debug=True, host='0.0.0.0', port=5000)
+
+
+# Uygulama yüklendiğinde (prod dahil) veritabanını hazırla
+init_db_and_seed()
+
+if __name__ == '__main__':
+    port = int(os.getenv('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
